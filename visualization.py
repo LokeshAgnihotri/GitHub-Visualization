@@ -1,11 +1,14 @@
-import requests
-from pprint import pprint
+import os
+import subprocess
 
-# github username
-username = "lokeshagnihotri"
-# url to request
-url = f"https://api.github.com/users/lokeshagnihotri"
-# make the request and return the json
-user_data = requests.get(url).json()
-# pretty print JSON data
-pprint(user_data)
+# Clone the repository to a local directory
+subprocess.run(["git", "clone", "https://github.com/acheong08/EdgeGPT.git"])
+# Navigate to the repository directory
+os.chdir("EdgeGPT")
+print(os.listdir())
+
+# # Install pydeps
+# subprocess.run(["pip", "install", "pydeps"])
+
+# # Analyze the dependencies using pydeps
+subprocess.run(["pydeps", "."])
