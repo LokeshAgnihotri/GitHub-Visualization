@@ -1,76 +1,44 @@
-import json
 import requests
+import base64
+import json
 
-# Splunk configuration (replace with your own values)
-SPLUNK_URL = "https://LOKESHAGNIHOTRI:8089/services/collector/event"
-SPLUNK_TOKEN = "82af2f39-06c4-468f-825c-32f67e499d49"
-
-# GitHub API endpoints
-REPO_API_ENDPOINT = "https://api.github.com/users/{user}/repos"
-DEPENDENCIES_API_ENDPOINT = "https://api.github.com/repos/{owner}/{repo}/dependency-graph"
+# GitHub API endpoint
+API_ENDPOINT = "https://api.github.com/users/{user}/repos"
 
 # GitHub authentication credentials (replace with your own values)
-auth = ("LokeshAgnihotri", "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")
+auth = ("LokeshAgnihotri", "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")
 
-# GitHub user information
-user = "ignashub"
+# GitHub username to retrieve repositories for
+username = "nischay1234aa"
 
-def get_dependencies(owner, repo):
-    """
-    Recursively retrieves the full dependency tree for a given repository.
-    """
-    # Make API request to get list of dependencies for the repository
-    dependencies_api_url = DEPENDENCIES_API_ENDPOINT.format(owner=owner, repo=repo)
-    response = requests.get(dependencies_api_url, auth=auth, verify=True)
-
-    if response.status_code == 200:
-        # Extract dependencies from API response
-        dependencies = []
-        for package in response.json()["dependencies"]:
-            dependencies.append({
-                "name": package["package"]["name"],
-                "version": package["package"]["version"],
-                "type": package["package"]["type"],
-                "url": package["package"]["repository"]["url"],
-                "dependencies": get_dependencies(package["package"]["repository"]["owner"]["login"], package["package"]["repository"]["name"])
-            })
-
-        return dependencies
-    else:
-        print("Error getting repository dependencies: ", response.status_code)
-        return []
+# Initialize dictionary to store repositories and their dependencies
+repositories = {}
 
 # Make API request to get list of repositories for the user
-repo_api_url = REPO_API_ENDPOINT.format(user=user)
+repo_api_url = API_ENDPOINT.format(user=username)
 response = requests.get(repo_api_url, auth=auth, verify=True)
 
 if response.status_code == 200:
-    # Create empty dictionary to store all dependencies
-    all_dependencies = {}
-
     # Iterate through each repository
     for repo in response.json():
-        print("Processing repository: ", repo["name"])
-
-        # Get full dependency tree for the repository
-        dependencies = get_dependencies(repo["owner"]["login"], repo["name"])
-
-        # Add dependencies to the dictionary
-        if dependencies:
-            all_dependencies[repo["name"]] = dependencies
-
-    # Convert dictionary of dependencies to JSON
-    dependencies_json = json.dumps(all_dependencies)
-
-    # Send JSON to Splunk
-    headers = {"Authorization": f"Splunk {SPLUNK_TOKEN}"}
-    data = {"event": dependencies_json}
-    response = requests.post(SPLUNK_URL, headers=headers, json=data, verify=True)
-
-    if response.status_code == 200:
-        print("Success!")
-    else:
-        print("Error sending JSON to Splunk: ", response.status_code)
-
+        print("Retrieving dependencies for repository:", repo["name"])
+        # Make API request to get the contents of the requirements.txt file
+        requirements_api_url = f'https://api.github.com/repos/{username}/{repo["name"]}/contents/requirements.txt'
+        requirements_response = requests.get(requirements_api_url, auth=auth, verify=True)
+        if requirements_response.status_code == 200:
+            # Extract the dependencies from the requirements.txt file
+            requirements_content = requirements_response.json()["content"]
+            requirements_decoded = base64.b64decode(requirements_content).decode("utf-8")
+            requirements_list = requirements_decoded.split("\n")
+            # Add the list of dependencies and their versions to the repository dictionary
+            repository = {repo["name"]: [{"name": name, "version": version} for name, version in [r.split("==") for r in requirements_list if r.strip() != ""]]}
+            repositories.update(repository)
+        else:
+            print("Error getting dependencies for repository:", repo["name"])
 else:
     print("Error getting repositories for user: ", response.status_code)
+
+# Write the repositories dictionary to a JSON file
+with open("repositories.json", "w") as f:
+    json.dump(repositories, f)
+    print("Repositories and their dependencies saved to repositories.json file.")

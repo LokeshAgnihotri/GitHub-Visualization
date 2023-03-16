@@ -26,45 +26,8 @@ else:
 
 class http_event_collector:
 
-    """
-        Splunk HTTP Event Collector Class
+ 
 
-        Keyword Arguments:
-            token -- the Splunk HEC token value - required
-            http_event_server -- the Splunk Server name or ip. Name must be network resolvable. - required
-            input_type -- json or raw HEC type - provided at init (default json)
-            host -- value to use as host field for events sent to Splunk (default the local system's hostname) 
-            http_event_port -- Splunk HEC network port (default 8088)
-            http_event_server_ssl -- boolean to set if Splunk HEC is using SSL (default True) 
-
-        Attributes:
-            SSL_verify -- boolean flag to force SSL certificate verification (default false)
-            popNullFields -- boolean flag to pop null fields off payload prior to sending to Splunk (default false)
-            index -- optional index name for HEC events (default None)
-            sourcetype -- optional sourcetype name for HEC events (default None)
-            server_uri -- computed property for HEC uri based on HEC type, raw metadata etc.
-
-        Example Init:
-            from splunk_http_event_collector import http_event_collector
-            testeventJSON = http_event_collector("4D14F8D9-D788-4E6E-BF2D-D1A46441242E","localhost")
-
-            For full usage example: https://github.com/georgestarcher/Splunk-Class-httpevent/blob/master/example.py
-     """
-
-    # Default batch max size to match splunk's default limits for max byte
-    # See http_input stanza in limits.conf; note in testing I had to limit to 100,000 to avoid http event collector breaking connection
-    # Auto flush will occur if next event payload will exceed limit
-    maxByteLength = 100000
-    # Number of threads used to send events to the HEC endpoint (max concurrency).
-    # If event batching is used, a single thread may send multiple events at a time in a single http request.
-    threadCount = 10
-    # Limit the size of the flushQueue, that buffers events for the sending threads.
-    maxQueueSize = 100 * threadCount
-
-    # An improved requests retry method from
-    # https://www.peterbe.com/plog/best-practice-with-retries-with-requests
-    # 503 added for endpoint busy
-    # 408 added in case using HAproxy
 
     def requests_retry_session(self, retries=3,backoff_factor=0.3,status_forcelist=(408,500,502,503,504),session=None):
         session = session or requests.Session()
@@ -133,18 +96,7 @@ class http_event_collector:
         return (server_uri)
 
     def check_connectivity(self):
-        """
-        method to check connectivity to Splunk HEC
-
-        Reference:
-            https://docs.splunk.com/Documentation/Splunk/8.0.2/Data/TroubleshootHTTPEventCollector
-
-        Notes:
-            method will return true even if HEC token is wrong because system is reachable. 
-            method will log warning on reachable errors to show bad token
-            method will warn on splunk hec server health codes
-        """
-
+   
         self.log.info("Checking HEC Server URI reachability.")
         headers = {'Authorization':'Splunk '+self.token, 'X-Splunk-Request-Channel':str(uuid.uuid1())}
         payload = dict()
