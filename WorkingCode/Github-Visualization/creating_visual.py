@@ -1,3 +1,4 @@
+import time
 import requests
 import json
 import argparse
@@ -8,7 +9,7 @@ import base64
 API_ENDPOINT = "https://api.github.com/users/{user}/repos"
 
 # GitHub authentication credentials (replace with your own values)
-auth = ("LokeshAgnihotri", "enter token erhe")
+auth = ("LokeshAgnihotri", "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")
 
 # Create event collector object
 http_event_collector_key = "f6a91647-602a-4309-8ec7-ad5a46e53839"
@@ -27,13 +28,10 @@ repo_api_url = API_ENDPOINT.format(user=args.username)
 response = requests.get(repo_api_url, auth=auth, verify=True)
 
 if response.status_code == 200:
-    # Create a list to store all the repositories and their dependencies
-    repositories = []
-    
     # Iterate through each repository
     for repo in response.json():
         # Create a dictionary to store the repository name and its dependencies
-        repository = {"name": repo["name"], "dependencies": []}
+        repository = {"repository_name": repo["name"], "dependencies": []}
         
         # Make API request to get the contents of the requirements.txt file for the repository
         contents_api_url = f"{repo['url']}/contents/requirements.txt"
@@ -48,16 +46,25 @@ if response.status_code == 200:
             for dependency in dependencies:
                 if dependency:
                     name, version = dependency.strip().split('==')
-                    repository["dependencies"].append({"name": name, "version": version})
+                    repository["dependencies"].append({"dependency_name": name, "dependency_version": version})
         
-        # Append the repository dictionary to the repositories list
-        repositories.append(repository)
+        # Create a dictionary with a key named "repository" that contains the repository and its dependencies
+        data = {"repository": repository}
     
-    # Create a payload dictionary to send the repositories list as a JSON object
-    payload = {"index": "main", "sourcetype": "github_repositories", "source": "github", "host": "my_host", "event": repositories}
+        # Convert the dictionary to a JSON object
+        json_data = json.dumps(data)
     
-    # Send the payload to Splunk using HTTP Event Collector
-    hec.batchEvent(payload)
-    hec.flushBatch()
+        # Send the JSON object to Splunk using HTTP Event Collector
+        payload = {
+            "index": "main", 
+            "sourcetype": "github_repository", 
+            "source": "github", 
+            "host": "my_host", 
+            "event": json_data,
+            "time": int(time.time())
+        }
+    
+        hec.batchEvent(payload)
+        hec.flushBatch()
 else:
     print("Error getting repositories for user: ", response.status_code)
