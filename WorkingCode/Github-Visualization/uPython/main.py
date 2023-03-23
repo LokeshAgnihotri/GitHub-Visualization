@@ -14,12 +14,8 @@ payload.update({"sourcetype":"txt"})
 payload.update({"source":"feather"})
 payload.update({"host":"mysterymachine"})
 
-# Optional set NTP. Do we just trust clock is correct? Do we use a seed time?
-# The class does not force NTP attempt on init. That is left to the programmer to decide.
 testeventJSON.set_ntp_time()
 
-# If you want to not include timestamp in json payloads force the HEC object to not include time
-# testeventJSON.includeTime = False
 
 # Add 5 test events
 for i in range(5):
