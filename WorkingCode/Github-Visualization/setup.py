@@ -3,12 +3,15 @@
 from distutils.core import setup
 
 import sys
-if sys.version_info < (2,7):
+
+if sys.version_info < (2, 7):
     sys.exit('Sorry, Python < 2.7 is not supported')
+
 
 def readme():
     with open('readme.md') as f:
         return f.read()
+
 
 setup(name='Splunk-HEC',
       python_requires='>2.7',
@@ -20,5 +23,4 @@ setup(name='Splunk-HEC',
       install_requires=[
           'requests'
       ],
-     )
-
+      )
