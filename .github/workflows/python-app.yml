@@ -38,4 +38,4 @@ jobs:
       run: |
         cd WorkingCode/Github-Visualization/Test/
         python3 -m unittest
-        pytest
+        
